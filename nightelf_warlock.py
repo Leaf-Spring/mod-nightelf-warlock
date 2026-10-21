@@ -1,11 +1,13 @@
+#!/usr/bin/env python3
 import struct
 import os
 
 WARLOCK_CLASS_BIT = 256   # Bit correspondiente a la clase Brujo (2^8)
 NIGHTELF_RACE_BIT = 8     # Bit correspondiente a la raza Elfo de la Noche (2^3)
 
-# Spell IDs representativos de la racial de Elfo de la Noche (Fusión de sombras):
-TARGET_RACIAL_SPELLS = {20580, 58984}
+# Spell IDs de la raza Elfo de la Noche:
+# 21009: Elusiveness (Elusividad - pasiva)
+TARGET_RACIAL_SPELLS = {21009}
 
 def patch_char_base_info(filename="CharBaseInfo.dbc", race=4, class_id=9):
     print("=== 1/3: Procesando CharBaseInfo.dbc ===")
@@ -119,16 +121,19 @@ def patch_skill_line_ability(filename="SkillLineAbility.dbc"):
         race_mask = struct.unpack_from("<I", data, off + 12)[0]
         class_mask = struct.unpack_from("<I", data, off + 16)[0]
 
+        # Comprobar si pertenece a las raciales objetivo de Elfo de la Noche
         if (race_mask & NIGHTELF_RACE_BIT) and (spell_id in TARGET_RACIAL_SPELLS):
+            # Si el bit de Brujo no está asignado, lo añadimos acumulativamente sin modificar otras clases
             if not (class_mask & WARLOCK_CLASS_BIT):
                 new_class_mask = class_mask | WARLOCK_CLASS_BIT
                 struct.pack_into("<I", data, off + 16, new_class_mask)
                 patched_spells += 1
+                print(f"[+] Hechizo {spell_id}: ClassMask {class_mask} -> {new_class_mask}")
 
     if patched_spells > 0:
         with open(filename, "wb") as f:
             f.write(data)
-        print(f"[+] ÉXITO: Se asignó el bit de Brujo a {patched_spells} raciales específicas de Elfo de la Noche.\n")
+        print(f"\n[+] ÉXITO: Se asignó el bit de Brujo a {patched_spells} raciales sin alterar las demás clases.\n")
     else:
         print("[-] OMITIDO: Las raciales específicas ya están configuradas para Brujo.\n")
 
