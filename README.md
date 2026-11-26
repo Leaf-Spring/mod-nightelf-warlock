@@ -8,6 +8,7 @@ Los archivos requeridos para que este módulo funcione son:
 - `CharBaseInfo.dbc`
 - `CharStartOutfit.dbc`
 - `SkillLineAbility.dbc`
+- `SkillRaceClassInfo.dbc`
 
 ---
 
@@ -37,7 +38,7 @@ Para que el emulador reconozca que el Elfo de la Noche puede ser Brujo, necesita
 
 1. Descarga o clona este repositorio directamente dentro del directorio `modules/` de tu código fuente de AzerothCore.
 2. **Recompila el servidor:** Vuelve a ejecutar CMake y compila tu proyecto (con `make` en Linux o Visual Studio en Windows). Esto es indispensable para que el núcleo registre el módulo y prepare la inyección de la base de datos.
-3. Toma los archivos DBC ya modificados por el script (`CharBaseInfo.dbc`, `CharStartOutfit.dbc`, `SkillLineAbility.dbc`).
+3. Toma los archivos DBC ya modificados por el script (`CharBaseInfo.dbc`, `CharStartOutfit.dbc`, `SkillLineAbility.dbc`, `SkillRaceClassInfo.dbc`).
 4. Copia estos archivos dentro de la carpeta de datos de tu servidor ya compilado:  
    `bin/Data/dbc/` (o `data/dbc/` según la estructura de tu instalación).
 5. Inicia tu servidor (`worldserver`). Al arrancar, el sistema inyectará el parche SQL automáticamente y cargará los nuevos DBCs en memoria.

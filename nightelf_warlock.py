@@ -8,9 +8,11 @@ NIGHTELF_RACE_BIT = 8     # Bit correspondiente a la raza Elfo de la Noche (2^3)
 # Spell IDs de la raza Elfo de la Noche:
 # 21009: Elusiveness (Elusividad - pasiva)
 TARGET_RACIAL_SPELLS = {21009}
+# Skills de arma del Brujo que el Elfo de la Noche Brujo podría no recibir sin una fila válida en SkillRaceClassInfo
+WEAPON_SKILLS = {173, 43, 136, 228, 162}  # Dagas, Espadas, Bastones, Varitas, Sin armas
 
 def patch_char_base_info(filename="CharBaseInfo.dbc", race=4, class_id=9):
-    print("=== 1/3: Procesando CharBaseInfo.dbc ===")
+    print("=== 1/4: Procesando CharBaseInfo.dbc ===")
     if not os.path.exists(filename):
         print(f"[!] Archivo no encontrado: {filename}\n")
         return
@@ -41,7 +43,7 @@ def patch_char_base_info(filename="CharBaseInfo.dbc", race=4, class_id=9):
 
 
 def patch_char_start_outfit(filename="CharStartOutfit.dbc", target_race=4, target_class=9, source_race=7):
-    print("=== 2/3: Procesando CharStartOutfit.dbc ===")
+    print("=== 2/4: Procesando CharStartOutfit.dbc ===")
     if not os.path.exists(filename):
         print(f"[!] Archivo no encontrado: {filename}\n")
         return
@@ -101,7 +103,7 @@ def patch_char_start_outfit(filename="CharStartOutfit.dbc", target_race=4, targe
 
 
 def patch_skill_line_ability(filename="SkillLineAbility.dbc"):
-    print("=== 3/3: Procesando SkillLineAbility.dbc ===")
+    print("=== 3/4: Procesando SkillLineAbility.dbc ===")
     if not os.path.exists(filename):
         print(f"[!] Archivo no encontrado: {filename}\n")
         return
@@ -137,10 +139,61 @@ def patch_skill_line_ability(filename="SkillLineAbility.dbc"):
     else:
         print("[-] OMITIDO: Las raciales específicas ya están configuradas para Brujo.\n")
 
+def patch_skill_race_class_info(filename="SkillRaceClassInfo.dbc"):
+    print("=== 4/4: Procesando SkillRaceClassInfo.dbc ===")
+    if not os.path.exists(filename):
+        print(f"[!] Archivo no encontrado: {filename}\n")
+        return
+
+    with open(filename, "rb") as f:
+        data = bytearray(f.read())
+
+    magic, record_count, field_count, record_size, string_block_size = struct.unpack("<4sIIII", data[:20])
+    records_start = 20
+
+    patched = 0
+
+    for skill in sorted(WEAPON_SKILLS):
+        valid = False
+        candidate = None
+
+        for i in range(record_count):
+            off = records_start + (i * record_size)
+            s, race_mask, class_mask = struct.unpack_from("<III", data, off + 4)
+
+            if s != skill or not (class_mask == 0 or class_mask & WARLOCK_CLASS_BIT):
+                continue
+
+            # Ya existe una fila que permite al Elfo de la Noche Brujo esta skill
+            if race_mask == 0 or race_mask & NIGHTELF_RACE_BIT:
+                valid = True
+                break
+
+            # Solo se modifican filas que incluyen al Brujo, nunca filas de todas las clases
+            if class_mask != 0 and candidate is None:
+                candidate = (off, race_mask)
+
+        if valid:
+            print(f"[-] OMITIDO: La skill {skill} ya es válida para Elfo de la Noche Brujo.")
+        elif candidate:
+            off, race_mask = candidate
+            struct.pack_into("<I", data, off + 8, race_mask | NIGHTELF_RACE_BIT)
+            patched += 1
+            print(f"[+] Skill {skill}: RaceMask {race_mask} -> {race_mask | NIGHTELF_RACE_BIT}")
+        else:
+            print(f"[!] No se encontró ninguna fila del Brujo para la skill {skill}.")
+
+    if patched > 0:
+        with open(filename, "wb") as f:
+            f.write(data)
+        print(f"\n[+] ÉXITO: Se habilitaron {patched} skills de arma para Elfo de la Noche Brujo.\n")
+    else:
+        print("\n[-] OMITIDO: No hubo cambios en SkillRaceClassInfo.dbc.\n")
 
 if __name__ == "__main__":
     print("=== APLICANDO PARCHES BINARIOS A DBCs (ELFO DE LA NOCHE BRUJO) ===\n")
     patch_char_base_info()
     patch_char_start_outfit()
     patch_skill_line_ability()
+    patch_skill_race_class_info()
     print("=== PROCESO COMPLETADO ===")
